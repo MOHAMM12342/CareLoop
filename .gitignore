@@ -17,4 +17,6 @@ node_modules/
 backend/node_modules/
 app/build/
 build/
+app/src/main/assets/models/*.bin
+app/src/main/assets/models/*.gguf
 

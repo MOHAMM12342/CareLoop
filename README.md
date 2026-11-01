@@ -2,88 +2,140 @@
 
 > **"Doctolib gets you to the doctor. CareLoop makes sure you follow through — and tells your family when you don't."**
 
-CareLoop is an **offline-first, privacy-preserving mobile health commitment agent** for Android (with future iOS support), engineered specifically for elderly patients and their family caregivers.
+CareLoop is an **offline-first, privacy-preserving health commitment agent** for Android, engineered for elderly patients and their family caregivers. Built for hackathon demonstration (IMT Starter) and production-readiness under European (GDPR) and French Digital Health (*Mon espace santé* / HDS) regulations.
 
 ---
 
-## 1. Vision & Architecture Overview
+## 1. Architecture: "Rules Decide, an LLM Proposes"
 
-CareLoop is **not** a pill reminder. It is an autonomous on-device **commitment agent**:
-- It ingests health events (prescriptions via on-device OCR, appointments, lab tests).
-- Converts them into tracked commitments governed by a rigorous state machine (`UPCOMING` → `DUE` → `MISSED` → `ESCALATED` → `COMPLETED`).
-- Prompts the patient with high-contrast, large touch-target UI (≥64dp) and offline Text-to-Speech (TTS).
-- Opportunistically verifies completion against health records (Mon espace santé / DMP FHIR fixtures) when online, tagging items with a **"Verified from health record ✓"** badge.
-- Escalates through a platform-compliant ladder to siblings/caregivers when commitments slip.
+CareLoop operates on a strict safety boundary: **deterministic code governs all schedules, state machines, escalation ladders, and audit logs**. The on-device LLM serves solely as an intake listener and conversational companion.
 
-### The Commitment Loop
 ```
-PERCEIVE ────► DECIDE ────► ACT ────► VERIFY
-  │               │           │         │
-  ├─ OCR Scan     ├─ State    ├─ Exact  └─ Online FHIR
-  ├─ Mock FHIR       Machine     Alarm     Record Check
-  └─ Manual       └─ Ladder   ├─ TTS       (Auto-close)
-                     Schedule ├─ Tiered
-                              │  Escalation
-                              └─ Triple-Tap Quick Checker
-                                 (Zero-Friction Confirmation)
+[Elderly Patient Voice / Text]
+             │
+             ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Bundled On-Device Model (Qwen 2.5 0.5B Instruct INT4)       │
+│ Generates structured ChatML tool JSON calls                 │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼ (Typed Tool Calls)
+┌─────────────────────────────────────────────────────────────┐
+│ CareLoop Policy Layer (Deterministic Safety Guardian)       │
+│ - Validates invariants & bounds (e.g. 5–120 min snooze)     │
+│ - Strict data minimisation (strips drug names from alerts)  │
+│ - Human-in-the-Loop Safety Gate                             │
+└───────────────┬─────────────────────────────┬───────────────┘
+                │                             │
+    (Medical data proposal)       (Safe deterministic action)
+                ▼                             ▼
+┌───────────────────────────────┐ ┌───────────────────────────┐
+│ Patient Confirmation Card     │ │ Database & Alarms         │
+│ Requires explicit 1-tap       │ │ - mark_taken()            │
+│ "Confirm ✓" on screen         │ │ - snooze()                │
+└───────────────────────────────┘ │ - get_today()             │
+                                  └───────────────────────────┘
 ```
 
----
-
-## 2. Zero-Friction Commitment Checker (Elderly Multi-Tap Extension)
-
-Elderly patients often struggle with typing passcodes, authenticating, or navigating hierarchical mobile menus. To eliminate all friction:
-- **Triple-Tap Screen Shortcut (`multiTapDetector`):** Tapping the screen 3 times rapidly from anywhere opens the **Quick Commitment Checker** immediately.
-- **Lockscreen / Ambient Bypass (`QuickCheckerActivity`):** Configured with `showWhenLocked="true"` and `turnScreenOn="true"` so the patient can confirm their dose without unlocking the device.
-- **Single Giant Action Button (130dp):** Prominently displays the scheduled dose in high-contrast text with a massive **"YES, I TOOK IT ✓"** button, triggering instant haptic feedback, offline voice confirmation, alarm cancellation, and ledger audit logging.
-- **Android Quick Settings Tile (`QuickCheckerTileService`):** Patients can also swipe down from the notification drawer on any screen and tap the "CareLoop Check" tile with 1 tap.
+### Typed Tools Specification
+1. `propose_commitment(type, title, dueAt, instructions)`: **Safety Gate** — returns `PendingConfirmation`. Never writes directly to the database until the patient confirms on screen.
+2. `mark_taken(commitmentId)`: Marks a commitment completed and records tamper-proof adherence logs.
+3. `snooze(commitmentId, snoozeMinutes)`: Delays reminders with bounds enforced between 5 and 120 minutes.
+4. `get_today()` / `get_all_commitments()` / `get_medications()`: Reads current schedules and medications.
+5. `draft_caregiver_message(reason)`: **Data Minimisation** — strictly masks or sanitizes medical details: `"[Name] has not confirmed an important reminder."` Never outputs drug names or clinical conditions.
+6. **Zero Escalation Tools**: The LLM has no authority to cancel, delay, or trigger the escalation ladder.
 
 ---
 
-## 2. The Honest Integration Story
+## 2. On-Device Model Bundling (Qwen 2.5 0.5B Instruct)
 
-### No Doctolib Public API
-Doctolib has **no public patient-facing API**. Any app claiming a direct "Doctolib API integration" is misleading judges or using brittle, fragile web scrapers that violate terms of service and breach patient privacy.
+The model **comes bundled directly inside the APK assets**, requiring **zero post-installation downloads**:
 
-### The French Digital Health Path (Mon espace santé / DMP)
-The official, secure, and legally supported integration path in France is the **Mon espace santé / DMP (Dossier Médical Partagé) FHIR APIs**, which Doctolib and medical software already feed via Ségur du Numérique standards.
-
-For the MVP, CareLoop integrates via the clean `HealthEventSource` interface backed by a bundled `MockFhirSource` JSON fixture mirroring HL7 FHIR `MedicationRequest`, `Appointment`, and `DiagnosticReport` schemas. In production, this swaps directly to the authenticated DMP FHIR endpoint.
+- **Model Selection**: **Qwen 2.5 0.5B Instruct (INT4 Mobile Q4_K_M)**.
+  - State-of-the-art reasoning and tool calling for sub-1B parameter models.
+  - Pre-trained on native multilingual vocabularies (French & English) essential for French healthcare terms (*"Prendre Kardegic 75mg"*, *"Docteur Laurent"*).
+- **Asset Packaging**: Model weights reside in `app/src/main/assets/models/qwen2.5-0.5b-instruct-int4.bin` (469 MB).
+- **Memory-Mapped Direct I/O (`mmap`)**: Configured with `aaptOptions.noCompress += listOf("bin", "task", "tflite", "gguf")` in `app/build.gradle.kts`. Android memory-maps weights directly from the APK into virtual memory without uncompressing 469 MB into heap RAM.
+- **Offline Safety Engine Fallback**: If running in constrained environments, `CareLoopAgentEngine` falls back gracefully to deterministic rule-based parsing without crashing.
+- **Strict MDR Guard**: Refuses diagnostic or dosage questions (*"Can I take a double dose?"* $\to$ *"I cannot give medical or dosage advice. Please contact your doctor or pharmacist."*).
 
 ---
 
-## 3. Platform-Compliant Escalation Ladder
+## 3. The Platform-Compliant Escalation Ladder
 
-Silent background SMS sending (`SEND_SMS`) will be **rejected by the Google Play Store** for non-default SMS handler apps, and iOS strictly prohibits background SMS. CareLoop solves this with a compliant 5-tier ladder:
+CareLoop provides an escalation ladder with two build flavors:
+- **`demo` flavor**: Sideloaded APK for live demos. Sends silent background SMS via `SmsManager` after patient and caregiver consent at onboarding (runtime `SEND_SMS`).
+- **`play` flavor**: Google Play compliant. Uses pre-filled `Intent.ACTION_SENDTO` (one-tap patient send) adhering to Google Play policies.
 
 | Tier | Channel | Offline? | Mechanism |
 | :--- | :--- | :---: | :--- |
-| **Tier 0** | Local Alarm & Notification | **Yes** | High-priority alarm sound, persistent vibration, heads-up display with "Done ✓" and "Snooze" actions. |
-| **Tier 1** | Local Re-notification + Voice TTS | **Yes** | Fires after the grace period; Android TTS reads the reminder aloud in plain language. |
-| **Tier 2** | Caregiver Push Notification | No | Dispatched via FCM if patient and caregiver devices are online. |
-| **Tier 3** | Backend Voice Call / SMS (Twilio) | No | Patient app posts to a stateless, HDS-compliant backend that triggers a cellular phone call or SMS to the primary caregiver. |
-| **Tier 4** | Platform-Compliant Offline Fallback | **Yes** | Pre-fills native `Intent.ACTION_SENDTO` with emergency text to the sibling, requiring a single user tap. Compliant because the send is user-initiated. |
+| **Tier 0** | Local Notification | **Yes** | High-priority heads-up notification with Taken & Snooze actions. |
+| **Tier 1** | Re-notification + Voice TTS | **Yes** | Re-notification accompanied by Android TextToSpeech spoken reminder. |
+| **Tier 2** | Caregiver Push via FCM | No | Stateless relay push notification forwarder to caregiver companion devices. |
+| **Tier 3** | Backend Voice Call / SMS (Twilio) | No | Dispatches SMS or automated French voice call via stateless backend. |
+| **Tier 4** | Offline Fallback | **Yes** | Sideloaded silent SMS (`demo`) or 1-tap `ACTION_SENDTO` intent (`play`). |
 
-All escalation steps are logged into an encrypted, tamper-proof on-device ledger visible in the **Caregiver Activity Timeline**.
-
----
-
-## 4. Platform Capability Negotiation
-
-Android 12+ (API 31+) restricts exact alarms (`SCHEDULE_EXACT_ALARM`). CareLoop implements `AlarmCapabilityNegotiator`:
-- At startup, tests `AlarmManager.canScheduleExactAlarms()`.
-- **Granted:** Schedules exact wakeup alarms (`setExactAndAllowWhileIdle`).
-- **Denied:** Gracefully falls back to `WorkManager` (inexact ±15m window) and displays a plain-language dialog directing the user to system settings to grant permission for life-critical timing. CareLoop **never crashes or silently drops alarms**.
+**Data Minimisation Invariant**: All outbound communications to family or carriers follow the format `"[Name] has not confirmed an important reminder."` Medication names and dosages are never leaked.
 
 ---
 
-## 5. Technology Stack
+## 4. Ground-Truth Verification & Prescription OCR
 
-- **UI:** Kotlin, Jetpack Compose, Material 3 with High Contrast & Large-Type Theme (≥64dp touch targets).
-- **Database:** Room + SQLCipher (AES-256 encrypted at rest).
-- **Scheduling:** `AlarmManager` with `AlarmCapabilityNegotiator` + `WorkManager` fallback.
-- **Vision / OCR:** Google ML Kit Text Recognition v2 (offline, on-device) + local medication dictionary matcher.
-- **Network & Location:** Ktor Client (CIO), `ConnectivityMonitor` (hardware connection vs. internet reachability), FusedLocationProvider + OpenStreetMap Overpass API (free, non-metered).
-- **Audio:** Offline Android `TextToSpeech` engine.
-- **Backend:** Node.js/Express stateless Twilio forwarder (HDS deployable).
+### Opportunistic Health Record Verification (`VerificationWorker`)
+- Doctolib has no public patient-facing API. The legally supported French integration path is **Mon espace santé / DMP (Dossier Médical Partagé) FHIR APIs**.
+- CareLoop implements a clean `HealthEventSource` interface backed by a bundled `MockFhirSource` mirroring HL7 FHIR `MedicationRequest`, `Appointment`, and `DiagnosticReport` resources.
+- `VerificationWorker` periodically queries health records in the background and auto-closes commitments with a **"Verified from health record ✓"** badge.
 
+### Prescription OCR Verification Gate
+- Built with **CameraX** and **Google ML Kit Text Recognition v2**.
+- Parses medication name, dosage strength (`75mg`, `1000mg`), and form (`sachet`, `comprimé`) using a local dictionary and regex.
+- **Mandatory Confirmation Screen (`OcrPrescriptionScreen`)**: Low-confidence or unknown medications prompt the user to type the name manually. Nothing is written to the database until the user explicitly taps "Confirm & Save".
+
+---
+
+## 5. Elderly Accessibility & UI Design
+
+- **Zero Hidden Gestures**: No swipe-to-dismiss, no long-presses, no hidden drawer navigation.
+- **WCAG AAA Compliance**: Minimum 64dp touch targets, high-contrast palette (`#0F1E36`, `#1565C0`, `#1B5E20`, `#B71C1C`), and large typography (≥18sp body, ≥24sp headlines).
+- **Triple-Tap Quick Checker**: Tapping the screen 3 times rapidly from anywhere opens the giant 1-tap confirmation screen (`QuickCheckerActivity`), enabled with `showWhenLocked` and `turnScreenOn`.
+- **Quick Settings Tile**: Android Quick Settings tile allows 1-tap dose confirmation directly from the notification shade.
+
+---
+
+## 6. Stateless Backend & French HDS Compliance
+
+The backend (`backend/escalation_service.js`) is a forward-only Node.js service:
+- **Stateless & Zero Database**: Never writes personal identifiers or health records to disk.
+- **Twilio Integration**: Dispatches SMS and French Text-to-Speech voice calls (`<Say voice="alice" language="fr-FR">`).
+- **Demo Mode**: Automatically simulates successful delivery if Twilio credentials are not set.
+- **HDS Hosting (Art. L.1111-8 Code de la santé publique)**: Production deployment guide and GDPR Data Processing Agreement (DPA) requirements documented in [`backend/README.md`](file:///home/beast/Desktop/ProjectX/backend/README.md).
+
+---
+
+## 7. Build, Test, and Execution Instructions
+
+### Android App
+```bash
+# Run unit tests across both flavors (32 tests)
+./gradlew testDemoDebugUnitTest testPlayDebugUnitTest
+
+# Assemble standalone APKs (Model bundled inside)
+./gradlew assembleDemoDebug assemblePlayDebug
+```
+Generated packages:
+- `app/build/outputs/apk/demo/debug/app-demo-debug.apk` (~503 MB self-contained APK with Qwen 2.5 0.5B INT4 bundled)
+- `app/build/outputs/apk/play/debug/app-play-debug.apk` (~503 MB self-contained APK)
+
+### Model Assets Setup (Included)
+The model weights are downloaded via:
+```bash
+./scripts/download_qwen_weights.sh
+```
+
+### Backend Escalation Service
+```bash
+cd backend
+npm install
+npm test    # Runs 5/5 automated tests
+npm start   # Starts stateless forwarder on port 8080
+```
