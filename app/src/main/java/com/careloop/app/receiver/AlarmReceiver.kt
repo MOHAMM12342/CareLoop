@@ -21,18 +21,26 @@ class AlarmReceiver : BroadcastReceiver() {
                 ACTION_TRIGGER_COMMITMENT_ALARM -> {
                     val commitment = app.commitmentRepository.getCommitmentById(commitmentId)
                     if (commitment != null && commitment.state != CommitmentState.COMPLETED && commitment.state != CommitmentState.CANCELLED) {
+                        app.commitmentEngine.markDue(commitmentId)
                         app.escalationLadderManager.executeEscalation(commitmentId, EscalationTier.TIER_0)
                     }
                 }
 
                 ACTION_COMMITMENT_TAKEN -> {
                     app.notificationService.dismissNotification(commitmentId)
+                    app.alarmNegotiator.cancelCommitmentReminder(commitmentId)
                     app.commitmentEngine.confirmCommitmentTaken(commitmentId, "Confirmed via notification action")
                 }
 
                 ACTION_COMMITMENT_SNOOZE -> {
+                    val commitment = app.commitmentRepository.getCommitmentById(commitmentId)
                     app.notificationService.dismissNotification(commitmentId)
-                    app.commitmentEngine.snoozeCommitment(commitmentId, 15)
+                    val snoozeMinutes = 15
+                    app.commitmentEngine.snoozeCommitment(commitmentId, snoozeMinutes)
+                    if (commitment != null) {
+                        val newDueAt = System.currentTimeMillis() + (snoozeMinutes * 60 * 1000)
+                        app.alarmNegotiator.scheduleCommitmentReminder(commitmentId, commitment.title, newDueAt)
+                    }
                 }
 
                 ACTION_COMMITMENT_ESCALATE -> {

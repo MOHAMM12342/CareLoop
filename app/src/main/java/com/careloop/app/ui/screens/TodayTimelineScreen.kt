@@ -59,6 +59,75 @@ fun TodayTimelineScreen(
     val commitments by app.commitmentRepository.getTodayCommitments(startOfDay, endOfDay)
         .collectAsState(initial = emptyList())
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showExactAlarmDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val alreadyShown = app.careLoopDatabase.settingDao().getSetting("exact_alarm_dialog_shown") == "true"
+        if (!app.alarmNegotiator.canScheduleExact() && !alreadyShown) {
+            showExactAlarmDialog = true
+        }
+    }
+
+    if (showExactAlarmDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showExactAlarmDialog = false
+                coroutineScope.launch {
+                    app.careLoopDatabase.settingDao().setSetting(
+                        com.careloop.app.data.local.entity.SettingEntity("exact_alarm_dialog_shown", "true")
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Precise Reminders Needed",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "CareLoop needs permission to schedule exact reminders so your medications are reminded precisely on time, even while your phone is sleeping. Without this permission, Android may delay reminders by up to 15 minutes.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextDark
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExactAlarmDialog = false
+                        coroutineScope.launch {
+                            app.careLoopDatabase.settingDao().setSetting(
+                                com.careloop.app.data.local.entity.SettingEntity("exact_alarm_dialog_shown", "true")
+                            )
+                        }
+                        app.alarmNegotiator.createExactAlarmSettingsIntent()?.let {
+                            context.startActivity(it)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                ) {
+                    Text("Enable in Settings", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showExactAlarmDialog = false
+                        coroutineScope.launch {
+                            app.careLoopDatabase.settingDao().setSetting(
+                                com.careloop.app.data.local.entity.SettingEntity("exact_alarm_dialog_shown", "true")
+                            )
+                        }
+                    }
+                ) {
+                    Text("Continue with Delayed Reminders")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

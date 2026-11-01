@@ -100,7 +100,7 @@ fun VerifiedBadge(modifier: Modifier = Modifier) {
 fun OfflineStatusBanner(isOnline: Boolean, modifier: Modifier = Modifier) {
     val bgColor = if (isOnline) Color(0xFFE3F2FD) else Color(0xFFFFF3E0)
     val contentColor = if (isOnline) PrimaryBlue else WarningAmber
-    val text = if (isOnline) "Online • Cloud sync & verification active" else "Airplane Mode / Offline • Local Agent active"
+    val text = if (isOnline) "Online • Cloud sync & verification active" else "Offline (Wi-Fi & Data Off, Cellular Active) • Local Agent active"
     val icon = if (isOnline) Icons.Default.Wifi else Icons.Default.SignalCellularConnectedNoInternet0Bar
 
     Surface(

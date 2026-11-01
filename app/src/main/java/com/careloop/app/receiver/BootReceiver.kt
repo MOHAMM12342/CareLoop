@@ -21,8 +21,32 @@ class BootReceiver : BroadcastReceiver() {
                 )
 
                 for (entity in activeCommitments) {
+                    val commitment = com.careloop.app.domain.model.Commitment(
+                        id = entity.id,
+                        patientId = entity.patientId,
+                        type = entity.type,
+                        title = entity.title,
+                        dueAt = entity.dueAt,
+                        state = entity.state,
+                        verificationMethod = entity.verificationMethod,
+                        sourceEventId = entity.sourceEventId,
+                        escalationLevel = entity.escalationLevel,
+                        completedAt = entity.completedAt,
+                        createdAt = entity.createdAt,
+                        notes = entity.notes,
+                        verifiedOnline = entity.verifiedOnline
+                    )
+
                     if (entity.dueAt > now) {
                         app.alarmNegotiator.scheduleCommitmentReminder(entity.id, entity.title, entity.dueAt)
+                    }
+
+                    // Reschedule escalation milestones so timers survive reboot
+                    val milestones = app.escalationScheduler.computeMilestones(commitment, isDemoMode = false)
+                    for (milestone in milestones) {
+                        if (milestone.triggerAt > now) {
+                            app.escalationScheduler.scheduleMilestone(milestone)
+                        }
                     }
                 }
             }

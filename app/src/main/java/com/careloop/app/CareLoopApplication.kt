@@ -36,6 +36,12 @@ class CareLoopApplication : Application() {
     lateinit var escalationLadderManager: EscalationLadderManager
         private set
 
+    lateinit var escalationScheduler: EscalationScheduler
+        private set
+
+    lateinit var escalationChannel: com.careloop.app.domain.escalation.EscalationChannel
+        private set
+
     lateinit var alarmNegotiator: AlarmCapabilityNegotiator
         private set
 
@@ -85,13 +91,23 @@ class CareLoopApplication : Application() {
         backendClient = BackendEscalationClient()
         connectivityMonitor = ConnectivityMonitor(this)
         alarmNegotiator = AlarmCapabilityNegotiator(this)
+        escalationScheduler = EscalationScheduler(this, alarmNegotiator)
 
-        // 4. Initialize Agent Core & Ladder
+        // 4. Initialize Escalation Channel based on Build Flavor (demo: SmsManager, play: ACTION_SENDTO)
+        escalationChannel = if (BuildConfig.FLAVOR == "demo") {
+            com.careloop.app.domain.escalation.DemoSmsChannel(this)
+        } else {
+            com.careloop.app.domain.escalation.PlaySmsChannel(this)
+        }
+
+        // 5. Initialize Agent Core & Ladder
         commitmentEngine = CommitmentEngine(commitmentRepository)
         escalationLadderManager = EscalationLadderManager(
             context = this,
             commitmentRepository = commitmentRepository,
             caregiverRepository = caregiverRepository,
+            escalationAuditLogDao = careLoopDatabase.escalationAuditLogDao(),
+            escalationChannel = escalationChannel,
             notificationService = notificationService,
             ttsManager = ttsManager,
             backendClient = backendClient,
@@ -105,7 +121,10 @@ class CareLoopApplication : Application() {
         ocrParser = PrescriptionOcrParser(this)
         pharmacyFinder = OsmPharmacyFinder(careLoopDatabase.pharmacyDao())
 
-        // 6. Ensure default caregiver with consent for out-of-the-box demo if empty
+        // 6. Schedule Periodic Verification Worker (Opportunistic DMP FHIR sync)
+        com.careloop.app.agent.worker.VerificationWorker.enqueuePeriodic(this)
+
+        // 7. Ensure default caregiver with consent for out-of-the-box demo if empty
         CoroutineScope(Dispatchers.IO).launch {
             val list = caregiverRepository.getCaregiversList()
             if (list.isEmpty()) {

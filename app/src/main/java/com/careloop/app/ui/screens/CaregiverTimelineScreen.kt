@@ -6,17 +6,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.careloop.app.CareLoopApplication
-import com.careloop.app.domain.model.AdherenceLog
+import com.careloop.app.data.local.entity.EscalationAuditLogEntity
 import com.careloop.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -27,7 +29,7 @@ fun CaregiverTimelineScreen(
     app: CareLoopApplication,
     onNavigateBack: () -> Unit
 ) {
-    val allLogs by app.commitmentRepository.getAllLogs().collectAsState(initial = emptyList())
+    val auditLogs by app.careLoopDatabase.escalationAuditLogDao().getAllAuditLogs().collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {
@@ -35,7 +37,7 @@ fun CaregiverTimelineScreen(
                 title = { Text("Caregiver Activity Timeline", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -48,28 +50,28 @@ fun CaregiverTimelineScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Real-time Escalation & Caregiver Ledger",
+                text = "Tamper-Proof Escalation Ledger",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Every notification, snooze, and caregiver escalation is recorded in this encrypted tamper-proof ledger.",
+                text = "Immutable audit log of all caregiver alerts, delivery channels, and data-minimised messages.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextMuted
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (allLogs.isEmpty()) {
+            if (auditLogs.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No activity logs recorded yet.")
+                    Text("No escalation events logged yet.", style = MaterialTheme.typography.bodyLarge, color = TextMuted)
                 }
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(allLogs, key = { it.id }) { log ->
-                        CaregiverTimelineItem(log)
+                    items(auditLogs, key = { it.id }) { log ->
+                        EscalationAuditLogCard(log)
                     }
                 }
             }
@@ -78,11 +80,10 @@ fun CaregiverTimelineScreen(
 }
 
 @Composable
-fun CaregiverTimelineItem(log: AdherenceLog) {
-    val dateFormat = SimpleDateFormat("dd MMM HH:mm:ss", Locale.getDefault()).format(Date(log.actedAt))
-
-    val isEscalation = log.action.name == "ESCALATED"
-    val accentColor = if (isEscalation) HighContrastRed else if (log.action.name == "CONFIRMED") HighContrastGreen else WarningAmber
+fun EscalationAuditLogCard(log: EscalationAuditLogEntity) {
+    val dateFormat = SimpleDateFormat("dd MMM HH:mm:ss", Locale.getDefault()).format(Date(log.notifiedAt))
+    val isDelivered = log.outcome.startsWith("DELIVERED") || log.outcome == "PREPARED"
+    val accentColor = if (isDelivered) PrimaryBlue else HighContrastRed
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -105,28 +106,47 @@ fun CaregiverTimelineItem(log: AdherenceLog) {
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = log.action.name,
+                        text = log.channel.replace("_", " "),
                         fontWeight = FontWeight.Bold,
                         color = accentColor,
-                        fontSize = 15.sp
+                        fontSize = 14.sp
                     )
                 }
                 Text(
                     text = dateFormat,
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextMuted,
-                    fontSize = 13.sp
+                    fontSize = 12.sp
                 )
             }
-            if (log.note.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = log.note,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = 16.sp
-                )
+
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Target: ${log.whoNotified} • Outcome: ${log.outcome}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = TextDark
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                color = Color(0xFFF1F8E9),
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Shield, contentDescription = null, tint = HighContrastGreen, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "\"${log.dataMinimisedMessage}\"",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = HighContrastGreen
+                    )
+                }
             }
         }
     }
 }
-

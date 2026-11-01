@@ -54,6 +54,27 @@ class CommitmentEngine(
         )
     }
 
+    suspend fun markDue(commitmentId: String) {
+        val commitment = commitmentRepository.getCommitmentById(commitmentId) ?: return
+        if (commitment.state != CommitmentState.COMPLETED && commitment.state != CommitmentState.CANCELLED) {
+            commitmentRepository.updateState(
+                id = commitmentId,
+                newState = CommitmentState.DUE,
+                action = AdherenceAction.RESTORED,
+                note = "Commitment transitioned to DUE"
+            )
+        }
+    }
+
+    suspend fun cancelCommitment(commitmentId: String, reason: String = "Cancelled by user") {
+        commitmentRepository.updateState(
+            id = commitmentId,
+            newState = CommitmentState.CANCELLED,
+            action = AdherenceAction.MISSED,
+            note = reason
+        )
+    }
+
     suspend fun markMissed(commitmentId: String) {
         commitmentRepository.updateState(
             id = commitmentId,

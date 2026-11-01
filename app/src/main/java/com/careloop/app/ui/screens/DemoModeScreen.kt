@@ -66,7 +66,7 @@ fun DemoModeScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Follow steps 1 through 5 below to demonstrate offline commitment tracking, exact alarms, caregiver escalation, and opportunistic FHIR verification.",
+                        text = "Follow steps 1 through 5 below to demonstrate offline commitment tracking, exact alarms, caregiver escalation (Wi-Fi/data off, cellular on), and opportunistic FHIR verification.",
                         style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.85f))
                     )
                 }
