@@ -13,4 +13,6 @@ sealed class Screen(val route: String, val title: String) {
     object Settings : Screen("settings", "Settings")
     object DemoMode : Screen("demo_mode", "Stage Demo Mode")
     object QuickChecker : Screen("quick_checker", "Quick Commitment Check")
+    object CaregiverCompanion : Screen("caregiver_companion", "Family Companion")
+    object Assistant : Screen("assistant", "CareLoop Agent")
 }

@@ -72,6 +72,12 @@ class CareLoopApplication : Application() {
     lateinit var pharmacyFinder: OsmPharmacyFinder
         private set
 
+    lateinit var agentPolicyLayer: com.careloop.app.agent.policy.AgentPolicyLayer
+        private set
+
+    lateinit var careLoopAgentEngine: com.careloop.app.agent.llm.CareLoopAgentEngine
+        private set
+
     override fun onCreate() {
         super.onCreate()
 
@@ -121,7 +127,18 @@ class CareLoopApplication : Application() {
         ocrParser = PrescriptionOcrParser(this)
         pharmacyFinder = OsmPharmacyFinder(careLoopDatabase.pharmacyDao())
 
-        // 6. Schedule Periodic Verification Worker (Opportunistic DMP FHIR sync)
+        // 6. Initialize Agent Policy Layer & On-Device Engine (Rules decide, LLM proposes)
+        agentPolicyLayer = com.careloop.app.agent.policy.AgentPolicyLayer(
+            commitmentRepository = commitmentRepository,
+            caregiverRepository = caregiverRepository,
+            alarmNegotiator = alarmNegotiator
+        )
+        careLoopAgentEngine = com.careloop.app.agent.llm.CareLoopAgentEngine(
+            context = this,
+            policyLayer = agentPolicyLayer
+        )
+
+        // 7. Schedule Periodic Verification Worker (Opportunistic DMP FHIR sync)
         com.careloop.app.agent.worker.VerificationWorker.enqueuePeriodic(this)
 
         // 7. Ensure default caregiver with consent for out-of-the-box demo if empty

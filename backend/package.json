@@ -4,7 +4,8 @@
   "description": "Stateless Twilio forwarder for CareLoop caregiver escalations. Does NOT store medical data.",
   "main": "escalation_service.js",
   "scripts": {
-    "start": "node escalation_service.js"
+    "start": "node escalation_service.js",
+    "test": "node --test test/escalation_service.test.js"
   },
   "dependencies": {
     "express": "^4.19.2",

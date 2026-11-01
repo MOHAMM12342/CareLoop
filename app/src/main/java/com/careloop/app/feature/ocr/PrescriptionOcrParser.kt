@@ -14,7 +14,7 @@ data class ParsedPrescriptionResult(
     val confidenceScore: Float // 0.0 to 1.0
 )
 
-class PrescriptionOcrParser(private val context: Context) {
+class PrescriptionOcrParser(private val context: Context? = null) {
 
     private val dictionary = mutableListOf<MedicationDictionaryItem>()
 
@@ -31,24 +31,31 @@ class PrescriptionOcrParser(private val context: Context) {
 
     private fun loadDictionary() {
         try {
-            val json = context.assets.open("medication_dictionary.json").bufferedReader().use { it.readText() }
-            val array = JSONArray(json)
-            for (i in 0 until array.length()) {
-                val item = array.getJSONObject(i)
-                dictionary.add(
-                    MedicationDictionaryItem(
-                        name = item.getString("name"),
-                        generic = item.getString("generic"),
-                        defaultStrength = item.getString("defaultStrength"),
-                        defaultForm = item.getString("defaultForm")
+            val json = context?.assets?.open("medication_dictionary.json")?.bufferedReader()?.use { it.readText() }
+            if (json != null) {
+                val array = JSONArray(json)
+                for (i in 0 until array.length()) {
+                    val item = array.getJSONObject(i)
+                    dictionary.add(
+                        MedicationDictionaryItem(
+                            name = item.getString("name"),
+                            generic = item.getString("generic"),
+                            defaultStrength = item.getString("defaultStrength"),
+                            defaultForm = item.getString("defaultForm")
+                        )
                     )
-                )
+                }
+            } else {
+                addFallbackDictionary()
             }
         } catch (e: Exception) {
-            // Fallback dictionary
-            dictionary.add(MedicationDictionaryItem("Kardegic", "Aspirin", "75mg", "sachet"))
-            dictionary.add(MedicationDictionaryItem("Doliprane", "Paracetamol", "1000mg", "tablet"))
+            addFallbackDictionary()
         }
+    }
+
+    private fun addFallbackDictionary() {
+        dictionary.add(MedicationDictionaryItem("Kardegic", "Aspirin", "75mg", "sachet"))
+        dictionary.add(MedicationDictionaryItem("Doliprane", "Paracetamol", "1000mg", "tablet"))
     }
 
     fun parsePrescriptionText(extractedText: String): ParsedPrescriptionResult {
@@ -67,7 +74,7 @@ class PrescriptionOcrParser(private val context: Context) {
         val strengthPattern = Pattern.compile("(\\d+(\\.\\d+)?\\s*(mg|g|mcg|ml))", Pattern.CASE_INSENSITIVE)
         val strengthMatcher = strengthPattern.matcher(extractedText)
         val strength = if (strengthMatcher.find()) {
-            strengthMatcher.group(1).trim()
+            strengthMatcher.group(1)?.trim() ?: (matchedItem?.defaultStrength ?: "")
         } else {
             matchedItem?.defaultStrength ?: ""
         }
@@ -76,7 +83,7 @@ class PrescriptionOcrParser(private val context: Context) {
         val formPattern = Pattern.compile("(tablet|comprimé|capsule|gélule|sachet|drop|goutte)", Pattern.CASE_INSENSITIVE)
         val formMatcher = formPattern.matcher(extractedText)
         val form = if (formMatcher.find()) {
-            formMatcher.group(1).trim()
+            formMatcher.group(1)?.trim() ?: (matchedItem?.defaultForm ?: "tablet")
         } else {
             matchedItem?.defaultForm ?: "tablet"
         }
@@ -85,7 +92,7 @@ class PrescriptionOcrParser(private val context: Context) {
         val freqPattern = Pattern.compile("(once daily|1\\s*fois\\s*par\\s*jour|bid|tid|q8h|after meals|après les repas|for \\d+ days|pendant \\d+ jours)", Pattern.CASE_INSENSITIVE)
         val freqMatcher = freqPattern.matcher(extractedText)
         val frequency = if (freqMatcher.find()) {
-            freqMatcher.group(1).trim()
+            freqMatcher.group(1)?.trim() ?: "Once daily at 08:00"
         } else {
             "Once daily at 08:00"
         }

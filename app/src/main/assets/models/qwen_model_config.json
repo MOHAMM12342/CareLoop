@@ -1,0 +1,17 @@
+{
+  "model_name": "Qwen2.5-0.5B-Instruct",
+  "quantization": "INT4 Mobile Q4_K_M",
+  "architecture": "qwen2",
+  "weights_filename": "qwen2.5-0.5b-instruct-int4.bin",
+  "capabilities": [
+    "intent_extraction",
+    "structured_tool_calling",
+    "multilingual_french_english",
+    "elderly_accessible_dialogue"
+  ],
+  "max_context_length": 1024,
+  "memory_mapped": true,
+  "bundled_in_apk": true,
+  "chatml_template": "<|im_start|>system\n{system_prompt}<|im_end|>\n<|im_start|>user\n{user_input}<|im_end|>\n<|im_start|>assistant\n"
+}
+

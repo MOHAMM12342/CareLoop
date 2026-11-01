@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.careloop.app.agent.EscalationLadderAndAuditTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-01T12:58:57" hostname="beast-ASUS" time="0.031">
+<testsuite name="com.careloop.app.agent.EscalationLadderAndAuditTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-01T14:55:49" hostname="beast-ASUS" time="0.028">
   <properties/>
-  <testcase name="testDataMinimisedMessageFormat" classname="com.careloop.app.agent.EscalationLadderAndAuditTest" time="0.029"/>
+  <testcase name="testDataMinimisedMessageFormat" classname="com.careloop.app.agent.EscalationLadderAndAuditTest" time="0.027"/>
   <testcase name="testEscalationSchedulerDemoAcceleration" classname="com.careloop.app.agent.EscalationLadderAndAuditTest" time="0.001"/>
   <testcase name="testEscalationSchedulerMedicationMilestones" classname="com.careloop.app.agent.EscalationLadderAndAuditTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>

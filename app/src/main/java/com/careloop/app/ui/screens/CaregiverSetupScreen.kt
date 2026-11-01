@@ -29,7 +29,8 @@ import java.util.*
 fun CaregiverSetupScreen(
     app: CareLoopApplication,
     onNavigateBack: () -> Unit,
-    onNavigateToTimeline: () -> Unit
+    onNavigateToTimeline: () -> Unit,
+    onNavigateToCompanion: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val caregivers by app.caregiverRepository.getAllCaregivers().collectAsState(initial = emptyList())
@@ -51,6 +52,9 @@ fun CaregiverSetupScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToCompanion) {
+                        Icon(Icons.Default.PhoneAndroid, contentDescription = "Caregiver Companion App", tint = HighContrastGreen)
+                    }
                     IconButton(onClick = onNavigateToTimeline) {
                         Icon(Icons.Default.Timeline, contentDescription = "Caregiver Timeline", tint = PrimaryBlue)
                     }
@@ -160,6 +164,7 @@ fun CaregiverSetupScreen(
                         if (name.isNotBlank() && phone.isNotBlank() && consentChecked) {
                             coroutineScope.launch {
                                 val nextRank = (caregivers.maxOfOrNull { it.priorityRank } ?: 0) + 1
+                                val generatedToken = "PAIR-" + UUID.randomUUID().toString().take(6).uppercase()
                                 app.caregiverRepository.insertCaregiver(
                                     Caregiver(
                                         id = "cg-${System.currentTimeMillis()}",
@@ -168,7 +173,8 @@ fun CaregiverSetupScreen(
                                         phone = phone,
                                         priorityRank = nextRank,
                                         channelPreference = channel,
-                                        consentGrantedAt = System.currentTimeMillis()
+                                        consentGrantedAt = System.currentTimeMillis(),
+                                        pairingToken = generatedToken
                                     )
                                 )
                                 showAddDialog = false
@@ -245,6 +251,21 @@ fun CaregiverCard(
                     color = HighContrastGreen,
                     fontWeight = FontWeight.SemiBold
                 )
+                caregiver.pairingToken?.let { token ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = Color(0xFFEDE7F6)
+                    ) {
+                        Text(
+                            text = "Companion Token: $token",
+                            fontSize = 12.sp,
+                            color = Color(0xFF512DA8),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
             }
 
             IconButton(onClick = onDelete) {

@@ -38,7 +38,8 @@ fun CareLoopNavGraph(
                     onNavigateToCaregivers = { navController.navigate(Screen.CaregiverSetup.route) },
                     onNavigateToPharmacies = { navController.navigate(Screen.PharmacyFinder.route) },
                     onNavigateToDemo = { navController.navigate(Screen.DemoMode.route) },
-                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onNavigateToAssistant = { navController.navigate(Screen.Assistant.route) }
                 )
             }
 
@@ -78,12 +79,20 @@ fun CareLoopNavGraph(
                 CaregiverSetupScreen(
                     app = app,
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToTimeline = { navController.navigate(Screen.CaregiverTimeline.route) }
+                    onNavigateToTimeline = { navController.navigate(Screen.CaregiverTimeline.route) },
+                    onNavigateToCompanion = { navController.navigate(Screen.CaregiverCompanion.route) }
                 )
             }
 
             composable(Screen.CaregiverTimeline.route) {
                 CaregiverTimelineScreen(
+                    app = app,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.CaregiverCompanion.route) {
+                CaregiverCompanionScreen(
                     app = app,
                     onNavigateBack = { navController.popBackStack() }
                 )
@@ -105,6 +114,13 @@ fun CareLoopNavGraph(
 
             composable(Screen.DemoMode.route) {
                 DemoModeScreen(
+                    app = app,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.Assistant.route) {
+                com.careloop.app.ui.screens.AssistantScreen(
                     app = app,
                     onNavigateBack = { navController.popBackStack() }
                 )

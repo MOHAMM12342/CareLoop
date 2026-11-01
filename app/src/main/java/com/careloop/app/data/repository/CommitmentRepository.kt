@@ -40,6 +40,80 @@ class CommitmentRepository(
         commitmentDao.insertCommitments(commitments.map { it.toEntity() })
     }
 
+    suspend fun getTodayCommitments(): List<Commitment> {
+        val cal = java.util.Calendar.getInstance()
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        cal.set(java.util.Calendar.MILLISECOND, 0)
+        val startOfDay = cal.timeInMillis
+
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        cal.set(java.util.Calendar.MINUTE, 59)
+        cal.set(java.util.Calendar.SECOND, 59)
+        val endOfDay = cal.timeInMillis
+
+        return commitmentDao.getCommitmentsInStates(
+            listOf(CommitmentState.UPCOMING, CommitmentState.DUE, CommitmentState.MISSED, CommitmentState.ESCALATED, CommitmentState.COMPLETED)
+        ).filter { it.dueAt in startOfDay..endOfDay }.map { it.toDomain() }
+    }
+
+    suspend fun getAllActiveCommitments(): List<Commitment> {
+        return commitmentDao.getCommitmentsInStates(
+            listOf(CommitmentState.UPCOMING, CommitmentState.DUE, CommitmentState.ESCALATED)
+        ).map { it.toDomain() }
+    }
+
+    suspend fun markCompleted(
+        commitmentId: String,
+        method: VerificationMethod = VerificationMethod.PATIENT_CONFIRMATION,
+        notes: String = ""
+    ) {
+        val commitment = commitmentDao.getCommitmentById(commitmentId) ?: return
+        val updated = commitment.copy(
+            state = CommitmentState.COMPLETED,
+            completedAt = System.currentTimeMillis(),
+            verificationMethod = method,
+            notes = notes.ifBlank { commitment.notes }
+        )
+        commitmentDao.updateCommitment(updated)
+
+        adherenceLogDao.insertLog(
+            AdherenceLogEntity(
+                commitmentId = commitmentId,
+                expectedAt = commitment.dueAt,
+                actedAt = System.currentTimeMillis(),
+                action = AdherenceAction.CONFIRMED,
+                note = notes
+            )
+        )
+    }
+
+    suspend fun updateCommitmentDueAt(id: String, newDueAt: Long) {
+        val commitment = commitmentDao.getCommitmentById(id) ?: return
+        val updated = commitment.copy(
+            dueAt = newDueAt,
+            state = CommitmentState.UPCOMING
+        )
+        commitmentDao.updateCommitment(updated)
+
+        adherenceLogDao.insertLog(
+            AdherenceLogEntity(
+                commitmentId = id,
+                expectedAt = commitment.dueAt,
+                actedAt = System.currentTimeMillis(),
+                action = AdherenceAction.SNOOZED,
+                note = "Snoozed to new time"
+            )
+        )
+    }
+
+    suspend fun updateCommitmentState(id: String, newState: CommitmentState) {
+        val commitment = commitmentDao.getCommitmentById(id) ?: return
+        val updated = commitment.copy(state = newState)
+        commitmentDao.updateCommitment(updated)
+    }
+
     suspend fun updateState(
         id: String,
         newState: CommitmentState,

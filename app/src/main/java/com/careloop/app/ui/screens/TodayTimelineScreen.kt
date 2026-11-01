@@ -36,7 +36,8 @@ fun TodayTimelineScreen(
     onNavigateToCaregivers: () -> Unit,
     onNavigateToPharmacies: () -> Unit,
     onNavigateToDemo: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToAssistant: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     val isOnline by app.connectivityMonitor.isInternetReachable.collectAsState()
@@ -138,6 +139,9 @@ fun TodayTimelineScreen(
                     )
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToAssistant) {
+                        Icon(Icons.Default.SmartToy, contentDescription = "CareLoop Agent", tint = HighContrastGreen)
+                    }
                     IconButton(onClick = onNavigateToQuickChecker) {
                         Icon(Icons.Default.TouchApp, contentDescription = "Quick Check", tint = HighContrastGreen)
                     }

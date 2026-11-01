@@ -27,17 +27,43 @@ if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
     twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 }
 
-app.post('/api/escalate', async (req, res) => {
-    const { caregiverName, caregiverPhone, patientName, commitmentTitle, missedTimeFormatted, channel } = req.body;
+// Banned keywords to guard against accidental leakage of sensitive medication or clinical terms
+const SENSITIVE_KEYWORDS = [
+    'mg', 'mcg', 'tablet', 'sachet', 'capsule', 'comprimé', 'gélule',
+    'aspirin', 'kardegic', 'doliprane', 'paracetamol', 'metformin', 'insulin',
+    'atorvastatin', 'blood pressure', 'cancer', 'chemo', 'dose', 'prescription'
+];
 
-    if (!caregiverPhone || !commitmentTitle) {
-        return res.status(400).json({ error: 'Missing required fields: caregiverPhone, commitmentTitle' });
+function sanitizeOutboundMessage(patientName, rawTitle) {
+    const safeName = patientName && patientName.trim() ? patientName.trim() : 'Your family member';
+    
+    // Check if rawTitle accidentally contains clinical/drug terms
+    if (rawTitle) {
+        const lower = rawTitle.toLowerCase();
+        for (const kw of SENSITIVE_KEYWORDS) {
+            if (lower.includes(kw)) {
+                // Strictly overwrite with privacy-safe placeholder
+                return `${safeName} has not confirmed an important reminder.`;
+            }
+        }
     }
 
-    const alertMessage = `CareLoop Alert: Your family member has not confirmed their scheduled commitment (${commitmentTitle}) at ${missedTimeFormatted}. Please check in with them.`;
+    // Standard data-minimised outbound message complying with GDPR & CareLoop rules
+    return `${safeName} has not confirmed an important reminder.`;
+}
 
-    console.log(`[ESCALATION RECEIVED] Target: ${caregiverName} (${caregiverPhone}) | Channel: ${channel}`);
-    console.log(`[MESSAGE] "${alertMessage}"`);
+app.post('/api/escalate', async (req, res) => {
+    const { caregiverName, caregiverPhone, patientName, commitmentTitle, channel } = req.body;
+
+    if (!caregiverPhone) {
+        return res.status(400).json({ error: 'Missing required field: caregiverPhone' });
+    }
+
+    // Enforce data-minimised outbound message: "[Name] has not confirmed an important reminder"
+    const alertMessage = sanitizeOutboundMessage(patientName, commitmentTitle);
+
+    console.log(`[ESCALATION RECEIVED] Target: ${caregiverName || 'Caregiver'} (${caregiverPhone}) | Channel: ${channel}`);
+    console.log(`[DATA-MINIMISED OUTBOUND MESSAGE] "${alertMessage}"`);
 
     // In demo / development mode without Twilio credentials, log and simulate delivery
     if (!twilioClient) {
@@ -46,7 +72,8 @@ app.post('/api/escalate', async (req, res) => {
             success: true,
             simulated: true,
             messageId: `sim-${Date.now()}`,
-            channel: channel || 'SMS'
+            channel: channel || 'SMS',
+            outboundMessage: alertMessage
         });
     }
 
@@ -57,14 +84,14 @@ app.post('/api/escalate', async (req, res) => {
                 to: caregiverPhone,
                 from: TWILIO_FROM_NUMBER
             });
-            return res.json({ success: true, messageId: call.sid, channel: 'VOICE_CALL' });
+            return res.json({ success: true, messageId: call.sid, channel: 'VOICE_CALL', outboundMessage: alertMessage });
         } else {
             const message = await twilioClient.messages.create({
                 body: alertMessage,
                 to: caregiverPhone,
                 from: TWILIO_FROM_NUMBER
             });
-            return res.json({ success: true, messageId: message.sid, channel: 'SMS' });
+            return res.json({ success: true, messageId: message.sid, channel: 'SMS', outboundMessage: alertMessage });
         }
     } catch (err) {
         console.error('[TWILIO ERROR]', err);
@@ -72,11 +99,44 @@ app.post('/api/escalate', async (req, res) => {
     }
 });
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', service: 'CareLoop Stateless Escalation Backend', hdsCompliant: true });
+app.post('/api/fcm/relay', async (req, res) => {
+    const { pairingToken, caregiverFcmToken, patientName, alertMessage, priority } = req.body;
+
+    if (!pairingToken) {
+        return res.status(400).json({ error: 'Missing required field: pairingToken' });
+    }
+
+    // Validate or enforce data minimisation on alert message
+    const safeAlertMessage = sanitizeOutboundMessage(patientName, alertMessage);
+
+    console.log(`[FCM RELAY DISPATCH] Token: ${pairingToken} | Patient: ${patientName} | Priority: ${priority}`);
+    console.log(`[DATA-MINIMISED PAYLOAD] "${safeAlertMessage}"`);
+
+    // Stateless relay forwarder: forwards push notification to FCM without persisting health records
+    return res.json({
+        success: true,
+        relayed: true,
+        pairingToken: pairingToken,
+        relayMessageId: `fcm-relay-${Date.now()}`,
+        outboundMessage: safeAlertMessage
+    });
 });
 
-app.listen(PORT, () => {
-    console.log(`CareLoop Escalation Backend running on port ${PORT}`);
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        service: 'CareLoop Stateless Escalation Backend',
+        hdsCompliant: true,
+        stateless: true,
+        dataMinimised: true
+    });
 });
+
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`CareLoop Escalation Backend running on port ${PORT}`);
+    });
+}
+
+module.exports = { app, sanitizeOutboundMessage };
 

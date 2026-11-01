@@ -53,6 +53,9 @@ android {
         compose = true
         buildConfig = true
     }
+    androidResources {
+        noCompress += listOf("bin", "task", "tflite", "gguf")
+    }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
     }

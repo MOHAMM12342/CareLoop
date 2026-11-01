@@ -192,6 +192,18 @@ fun DemoModeScreen(
                 }
             )
 
+            // Step 6: Trigger Verification Worker on demand
+            Text("Step 6: Health Record Verification Sync", fontWeight = FontWeight.Bold)
+            ElderlyButton(
+                text = "6. Run Verification Worker Sync",
+                icon = Icons.Default.Sync,
+                containerColor = DeepNavy,
+                onClick = {
+                    com.careloop.app.agent.worker.VerificationWorker.runOnce(app)
+                    statusMessage = "VerificationWorker triggered: scanned active commitments against DMP records."
+                }
+            )
+
             Spacer(modifier = Modifier.height(20.dp))
         }
     }

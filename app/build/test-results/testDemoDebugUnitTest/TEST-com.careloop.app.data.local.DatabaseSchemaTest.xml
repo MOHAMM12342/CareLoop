@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.careloop.app.data.local.DatabaseSchemaTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-01T12:58:57" hostname="beast-ASUS" time="0.002">
+<testsuite name="com.careloop.app.data.local.DatabaseSchemaTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-01T14:55:49" hostname="beast-ASUS" time="0.002">
   <properties/>
-  <testcase name="testCommitmentStateTransitions" classname="com.careloop.app.data.local.DatabaseSchemaTest" time="0.0"/>
-  <testcase name="testEscalationAuditLogDataMinimisation" classname="com.careloop.app.data.local.DatabaseSchemaTest" time="0.001"/>
-  <testcase name="testTypeConvertersEnumValues" classname="com.careloop.app.data.local.DatabaseSchemaTest" time="0.0"/>
-  <testcase name="testCaregiverConsentAndPairingToken" classname="com.careloop.app.data.local.DatabaseSchemaTest" time="0.001"/>
+  <testcase name="testCommitmentStateTransitions" classname="com.careloop.app.data.local.DatabaseSchemaTest" time="0.001"/>
+  <testcase name="testEscalationAuditLogDataMinimisation" classname="com.careloop.app.data.local.DatabaseSchemaTest" time="0.0"/>
+  <testcase name="testTypeConvertersEnumValues" classname="com.careloop.app.data.local.DatabaseSchemaTest" time="0.001"/>
+  <testcase name="testCaregiverConsentAndPairingToken" classname="com.careloop.app.data.local.DatabaseSchemaTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
