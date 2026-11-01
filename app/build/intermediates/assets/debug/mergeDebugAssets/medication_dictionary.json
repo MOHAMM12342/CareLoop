@@ -1,0 +1,13 @@
+[
+  {"name": "Kardegic", "generic": "Acetylsalicylic Acid", "defaultStrength": "75mg", "defaultForm": "sachet"},
+  {"name": "Doliprane", "generic": "Paracetamol", "defaultStrength": "1000mg", "defaultForm": "tablet"},
+  {"name": "Tahor", "generic": "Atorvastatin", "defaultStrength": "20mg", "defaultForm": "tablet"},
+  {"name": "Levothyrox", "generic": "Levothyroxine", "defaultStrength": "50mcg", "defaultForm": "tablet"},
+  {"name": "Previscan", "generic": "Fluindione", "defaultStrength": "20mg", "defaultForm": "tablet"},
+  {"name": "Metformine", "generic": "Metformin", "defaultStrength": "500mg", "defaultForm": "tablet"},
+  {"name": "Coversyl", "generic": "Perindopril", "defaultStrength": "5mg", "defaultForm": "tablet"},
+  {"name": "Amlodipine", "generic": "Amlodipine", "defaultStrength": "5mg", "defaultForm": "capsule"},
+  {"name": "Eliquis", "generic": "Apixaban", "defaultStrength": "2.5mg", "defaultForm": "tablet"},
+  {"name": "Furosemide", "generic": "Furosemide", "defaultStrength": "40mg", "defaultForm": "tablet"}
+]
+

@@ -1,0 +1,14 @@
+{
+  "name": "careloop-escalation-backend",
+  "version": "1.0.0",
+  "description": "Stateless Twilio forwarder for CareLoop caregiver escalations. Does NOT store medical data.",
+  "main": "escalation_service.js",
+  "scripts": {
+    "start": "node escalation_service.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "twilio": "^5.0.4"
+  }
+}
+

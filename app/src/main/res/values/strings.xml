@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">CareLoop</string>
+    <string name="tagline">Doctolib gets you to the doctor. CareLoop makes sure you follow through.</string>
+    <string name="medical_disclaimer_title">Notice: Not a Medical Device</string>
+    <string name="medical_disclaimer_text">CareLoop is a personal health commitment tracker and family escalation agent. It does not provide medical diagnoses, dosage recommendations, or interpret clinical results. In case of a medical emergency, immediately contact your local emergency services (15 / 112).</string>
+    <string name="consent_disclaimer">By using CareLoop, you acknowledge that health data is stored strictly encrypted on this device. When offline or online, family escalation notifications will be sent according to your configured preferences with caregiver consent.</string>
+</resources>
+

@@ -1,0 +1,7 @@
+R_DEF: Internal format may change without notice
+local
+string app_name
+string consent_disclaimer
+string medical_disclaimer_text
+string medical_disclaimer_title
+string tagline

@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.careloop.app-mergeDemoDebugResources-68:/values-watch-v20/values-watch-v20.xml",
+            "map": [
+                {
+                    "source": "/home/beast/.gradle/caches/transforms-4/e30bbaf349b770b3924a07722a9aabed/transformed/appcompat-1.2.0/res/values-watch-v20/values-watch-v20.xml",
+                    "from": {
+                        "startLines": "2,5,8",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,214,385",
+                        "endLines": "4,7,10",
+                        "endColumns": "12,12,12",
+                        "endOffsets": "209,380,553"
+                    }
+                }
+            ]
+        }
+    ]
+}

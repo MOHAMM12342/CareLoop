@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Demo sideloaded build: runtime permission for silent SMS delivery after patient & caregiver consent -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+</manifest>
+

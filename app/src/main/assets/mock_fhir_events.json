@@ -1,0 +1,41 @@
+[
+  {
+    "id": "fhir-med-001",
+    "resourceType": "MedicationRequest",
+    "source": "MOCK_FHIR",
+    "status": "active",
+    "medication": "Kardegic (Aspirin)",
+    "dosageForm": "sachet",
+    "strength": "75mg",
+    "instructions": "Take 1 sachet dissolved in water once daily at 08:00",
+    "type": "MEDICATION",
+    "title": "Take Kardegic 75mg",
+    "dueMinutesFromNow": 1,
+    "completedInSource": false
+  },
+  {
+    "id": "fhir-appt-002",
+    "resourceType": "Appointment",
+    "source": "MOCK_FHIR",
+    "status": "booked",
+    "practitioner": "Dr. Martin (Cardiologist)",
+    "location": "Cabinet Médical Saint-Germain, Paris",
+    "type": "APPOINTMENT",
+    "title": "Cardiology Consultation - Dr. Martin",
+    "dueMinutesFromNow": 120,
+    "completedInSource": false
+  },
+  {
+    "id": "fhir-lab-003",
+    "resourceType": "DiagnosticReport",
+    "source": "MOCK_FHIR",
+    "status": "registered",
+    "testName": "Blood Test (INR & Lipid Panel)",
+    "lab": "Laboratoire Biogroup",
+    "type": "LAB_TEST",
+    "title": "Fasting Blood Test (INR / Lipid)",
+    "dueMinutesFromNow": 2880,
+    "completedInSource": false
+  }
+]
+

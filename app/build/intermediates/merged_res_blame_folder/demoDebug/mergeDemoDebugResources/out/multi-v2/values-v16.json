@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.careloop.app-mergeDemoDebugResources-68:/values-v16/values-v16.xml",
+            "map": [
+                {
+                    "source": "/home/beast/.gradle/caches/transforms-4/e30bbaf349b770b3924a07722a9aabed/transformed/appcompat-1.2.0/res/values-v16/values-v16.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "5",
+                        "endColumns": "12",
+                        "endOffsets": "223"
+                    }
+                }
+            ]
+        }
+    ]
+}
